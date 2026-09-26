@@ -100,10 +100,11 @@ June and September for the beach without the crowds. July and August are busy an
      visible. Milestone 4. -->
 
 **Question:**
-
+Which town is easiest to get around when you have limited accessibility?
 **Answer:**
 
-```
+```Thornby Wells is the easiest town in the region for accessibility, as it is
+flat, compact, and everything is within three minutes of everything else.
 ```
 
 **My relevance cutoff:**
@@ -119,7 +120,17 @@ June and September for the beach without the crowds. July and August are busy an
 
 | Question | In corpus? | Best distance |
 |---|---|---|
-|  |  |  |
+| which town is eeasies to get around when you have limited accessibility? | yes | 0.503 |
+| Which town is better to visit in the winter?| yes |	0.502 |
+|Which town has a sea front? | yes | 	0.527 |
+| Which town has the best bakery?| yes | 0.578 |
+| Where will be better to go cycling? | yes | 0.602 |
+| What is the capital of Mongolia? |  no | 0.803 |
+| Who won the 1994 World Cup? | no | 	0.975 |
+| What is the recommended dosage of ibuprofen for a headache? | no | 0.846 |
+| How do I write a for loop in Rust? | no|0.813 |
+| How do I change the oil in a diesel engine? | no | 	0.892 |
+
 
 ## How I Used AI
 
@@ -133,8 +144,10 @@ June and September for the beach without the crowds. July and August are busy an
      Milestone 5. -->
 
 **1.**
-
+I asked claude to help me with the function on the chunker.py, where the retrievals where cutting off because of the 800 characters. Once every thing igot fix the whoel documents reads directly full headding section. 
 **2.**
+For the relevant cutoff, i ran all 5 of my test questions and the 5 out of scope questions. I provided with the 10 results to Claude, and it helped explained what I was looking for and why these steps where necessary. 
+
 
 <!-- ── Stretch features ─────────────────────────────────────────────────────
      Doing one? Say so here BEFORE you start. A feature this README never
