@@ -55,21 +55,10 @@ in at least 4 of 5 tries.
 
 ---
 
-## 4. Something about your chunks
+## 4. Chunks follow the section headings
 
-<!-- YOU WRITE THIS ONE.
-
-     How would you know if your chunks were the right size? Name something
-     countable or observable.
-
-     Examples of the right shape — don't copy these, they should come from
-     what you actually saw in Milestone 3:
-       - "At least 4 of 5 sampled chunks read as a complete thought, with no
-          sentence cut in half at either end."
-       - "No chunk is shorter than 200 characters, since anything below that
-          in my corpus turned out to be a heading with no content under it." -->
-
-
+At least 4 of 5 chunks sampled with `python app.py chunks -n 5` begin at a `##`
+section heading and carry text from that one section only.
 
 **Why this target:**
 
@@ -77,17 +66,10 @@ in at least 4 of 5 tries.
 
 ---
 
-## 5. Your choice
+## 5. Conflicting documents are both surfaced
 
-<!-- YOU WRITE THIS ONE TOO.
-
-     Pick something you actually care about getting right. It could be about
-     speed, about refusals, about a particular kind of question your corpus
-     handles badly, about source attribution being correct rather than merely
-     present — anything, as long as it names a number or an observable
-     outcome. -->
-
-
+Asked "Where is the nearest full hospital?" three times, the system names both
+Brightwater and Marchwood or reports that the documents disagree, on all 3 runs.
 
 **Why this target:**
 
