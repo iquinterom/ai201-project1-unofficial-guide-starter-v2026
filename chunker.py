@@ -22,6 +22,7 @@ to it, write down what you saw, and move on. That's a real observation about
 your pipeline, not giving up.
 """
 
+import re
 from dataclasses import dataclass
 
 import config
@@ -97,7 +98,51 @@ def split_documents(documents: list[Document]) -> list[Chunk]:
       - Would splitting on paragraph breaks keep more thoughts intact than
         splitting on a character count?
     """
-    return fallback_split(documents)
+    chunks: list[Chunk] = []
+    for doc in documents:
+        # Split right before every "## " heading, so each heading stays
+       
+        sections = re.split(r"\n(?=## )", doc.text)
+
+        # A few documents jump straight from "# Title" into the first "##"
+        # heading with no intro paragraph, which would otherwise leave a
+        # useless title-only fragment (e.g. "# Walking in the region").
+        # Buffer a section forward until it has more than just a heading
+        # line, so the title lands attached to real content instead.
+        index = 0
+        buffer = ""
+        for section in sections:
+            section = section.strip()
+            if not section:
+                continue
+            buffer = f"{buffer}\n\n{section}" if buffer else section
+
+            non_empty_lines = [line for line in buffer.splitlines() if line.strip()]
+            if len(non_empty_lines) <= 1:
+                continue  # still just a bare heading — keep buffering
+
+            chunks.append(
+                Chunk(
+                    text=buffer,
+                    source=doc.source,
+                    index=index,
+                    produced_by="chunker.py::split_documents",
+                )
+            )
+            index += 1
+            buffer = ""
+
+        if buffer:
+            chunks.append(
+                Chunk(
+                    text=buffer,
+                    source=doc.source,
+                    index=index,
+                    produced_by="chunker.py::split_documents",
+                )
+            )
+
+    return chunks
 
 
 def describe(chunks: list[Chunk]) -> str:

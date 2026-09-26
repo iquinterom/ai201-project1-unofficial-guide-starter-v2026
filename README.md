@@ -1,6 +1,6 @@
 # The Unofficial Guide
 
-<!-- Replace this line with your name and which corpus you picked. -->
+<!-- Iris Quintero - Corpus: City Guides -->
 
 > **This file is your submission.** Fill it in as you go — most sections get
 > written during the milestone that produces them, not at the end.
@@ -21,26 +21,14 @@
 
 ## What This Does
 
-<!-- Three or four sentences. Which corpus you picked, and the kinds of
-     questions your system answers. Write it for someone who has never seen
-     this repo.
-
-     Milestone 5. -->
+This RAG QA tool was build as a City Guide for a fictional travel destination. There are 14 documents that provide information about 9 towns, such as accessibility, eating, transporation, seasons, and best walking towns. This is a travel guide where you can ask for advice on specific towns and an overrall overview for your traveling plans. 
 
 ## Chunking Strategy
 
 **Chunk size:**
 **Overlap:**
 
-<!-- What about YOUR documents made you pick these numbers? Short posts and
-     long sectioned guides don't want the same chunking, and "800 seemed
-     reasonable" earns nothing. Point at something you noticed when you read
-     the documents in Milestone 1.
-
-     If you changed your mind partway through, say so and say why. That's worth
-     more than pretending you got it right first time.
-
-     Milestone 3. -->
+The city guides corpus is 14 documents long, 958 charcters, ~2098 character per document; the chunk number is 51, but the output got sliced at 800 characters where it cut off mid sentence. Since the documents already produces ## headings, the chunker got changed to split on the headings ## instead of counting characters.  This new enhancement provides exactly that section to the real content. 
 
 ## Sample Chunks
 
@@ -53,29 +41,57 @@
 
      Milestone 3. -->
 
-**Chunk 1** — source: `` — produced by: ``
+**Chunk 1** — source: `guide_accessibility.md#0` — produced by: `chunker.py::split_documents`
 
-```
-```
+```======================================================================
+Chunk 1  |  source: guide_accessibility.md#0  |  produced by: chunker.py::split_documents
+======================================================================
+# Getting around the region with limited mobility
 
-**Chunk 2** — source: `` — produced by: ``
-
-```
-```
-
-**Chunk 3** — source: `` — produced by: ``
-
-```
+An honest assessment rather than a promotional one. Some of these places are
+difficult and it is better to know in advance.
 ```
 
-**Chunk 4** — source: `` — produced by: ``
+**Chunk 2** — source: `guide_accessibility.md#0 ` — produced by: `chunker.py::split_documents`
+
+```======================================================================
+Chunk 1  |  source: guide_accessibility.md#0  |  produced by: chunker.py::split_documents
+======================================================================
+# Getting around the region with limited mobility
+
+An honest assessment rather than a promotional one. Some of these places are
+difficult and it is better to know in advance.
+```
+
+**Chunk 3** — source: `guide_givens_mill.md#2 ` — produced by: chunker.py::split_documents``
+
+```======================================================================
+Chunk 3  |  source: guide_givens_mill.md#2  |  produced by: chunker.py::split_documents
+======================================================================
+## Getting around
+
+Everything is on one street along the river. The mill is at one end and the church at the other, eight minutes apart. The riverside path continues in both directions for as far as you want to walk.
+```
+
+**Chunk 4** — source: `guide_kestrelford.md#4` — produced by: `chunker.py::split_documents`
+
+```======================================================================
+Chunk 4  |  source: guide_kestrelford.md#4  |  produced by: chunker.py::split_documents
+======================================================================
+## What to see
+
+The market square on a Saturday morning is the main event and has run continuously since the 1400s. The parish church has a 13th-century tower you can climb for £2. The old trackbed walk runs six miles to the next village along an easy gradient and is the best half-day here.
 
 ```
-```
 
-**Chunk 5** — source: `` — produced by: ``
+**Chunk 5** — source:  `guide_pellew_sands.md#6:` — produced by: `chunker.py::split_documents`
 
-```
+```======================================================================
+Chunk 5  |  source: guide_pellew_sands.md#6  |  produced by: chunker.py::split_documents
+======================================================================
+## When to go
+
+June and September for the beach without the crowds. July and August are busy and the town is at its most itself, for better and worse. Winter is bleak, largely closed, and has a following among people who like that sort of thing.
 ```
 
 ## Sample Answer
