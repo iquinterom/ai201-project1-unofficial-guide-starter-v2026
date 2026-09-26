@@ -23,8 +23,11 @@ For at least 4 of my 5 test questions, the retrieved chunks include one that
 contains the answer.
 
 **Why this target:**
-<!-- e.g. "One of my questions is about a topic only two documents mention, so
-     I expect that one to be hard." -->
+Four of my five questions have their answer stated outright in a single
+paragraph of a single document, so anything below 4 of 5 would mean retrieval is
+failing on the straightforward cases. I stop short of 5 because my late-dinner
+question needs the opening-hours paragraph of `guide_eating.md` to survive
+chunking whole, and at 26 chunks across 14 documents I expect it to be cut.
 
 ---
 
@@ -33,8 +36,12 @@ contains the answer.
 Every answer the system produces names at least one source document.
 
 **Why this target:**
-<!-- Why all five and not four? What about your setup makes that achievable —
-     or what would have to go wrong for it not to be? -->
+Every chunk reaches the model already labelled `[from <filename>]`
+(`generate.py:295`), both the system instruction and the question itself ask for
+the file to be named, and the relevance gate refuses before generation whenever
+nothing is close enough — so there is no route to an answer with no source
+behind it. Allowing even one miss would excuse the model for ignoring an
+instruction it was given twice.
 
 ---
 
@@ -50,8 +57,11 @@ in at least 4 of 5 tries.
      just keep five of them, or the "4 of 5" above has nothing to be 4 of. -->
 
 **Why this target:**
-<!-- What did your distances look like when you set the cutoff in Milestone 4?
-     Was there a clean gap, or did the two groups overlap? -->
+Four of my five out-of-scope questions come from domains my documents never
+touch — diesel engines, ibuprofen, Rust, the 1994 World Cup — so I expect those
+to sit well outside the cutoff. The fifth asks for the capital of Mongolia,
+which is a geography question put to a corpus of travel guides, and that is the
+one I expect to land close enough to slip through.
 
 ---
 
@@ -61,6 +71,10 @@ At least 4 of 5 chunks sampled with `python app.py chunks -n 5` begin at a `##`
 section heading and carry text from that one section only.
 
 **Why this target:**
+Any chunker still has to cap length, so a section longer than that cap must be
+split somewhere and the second piece legitimately will not begin at a heading —
+which is the one miss I allow for. Setting it at 3 of 5 would let the current
+fixed-size split pass on the chunks that happen to land on a heading by accident.
 
 
 
@@ -72,6 +86,11 @@ Asked "Where is the nearest full hospital?" three times, the system names both
 Brightwater and Marchwood or reports that the documents disagree, on all 3 runs.
 
 **Why this target:**
+Nine town guides say the nearest full hospital is in Brightwater and
+`guide_accessibility.md` says Marchwood, so picking one and stating it plainly is
+the likely outcome and reads exactly as fluently as a correct answer would.
+Tolerating one miss in three would tolerate the silent failure this criterion
+exists to catch.
 
 
 
