@@ -176,15 +176,78 @@ For the relevant cutoff, i ran all 5 of my test questions and the 5 out of scope
 
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1. Retrieved chunk contains the answer | 4 of 5 |  |  |  |  |
-| 2. Every answer names a source | 5 of 5 |  |  |  |  |
-| 3. Gate stops out-of-corpus questions | 4 of 5 |  |  |  |  |
-| 4. | | | | | |
-| 5. | | | | | |
+| 1. Retrieved chunk contains the answer | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 2. Every answer names a source | 5 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 3. Gate stops out-of-corpus questions | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 4. Chunks follow the section headings | 4 of 5 | 4/5 | 4/5 | 4/5 | MET |
+| 5. Conflicting documents are both surfaced | 3 of 3 | pass | pass | pass | MET |
 
 <!-- Underneath, paste the REAL output for each criterion from one of your
      runs — the actual text your system produced, not a description of it.
      Name the file and function that produced it. -->
+
+**Criterion 1** — produced by: `run_eval.py::main` → `store.py::search`, `chunker.py::split_documents`
+
+```
+Which town is easiest to get around when you have limited accessibility? — run 1
+
+Best distance: 0.5078 (passed the gate)
+Sources retrieved: guide_accessibility.md, guide_corry_vale.md, guide_elder_ness.md, guide_halden_bay.md, guide_kestrelford.md
+
+Thornby Wells is the easiest town in the region for accessibility.
+
+Source: guide_accessibility.md
+```
+
+**Criterion 2** — produced by: `run_eval.py::main` → `generate.py::answer_from_chunks`
+
+```
+Which town has a sea front? — run 1
+
+Best distance: 0.5274 (passed the gate)
+Sources retrieved: guide_accessibility.md, guide_eating.md, guide_halden_bay.md, guide_pellew_sands.md
+
+Pellew Sands has a seafront, as mentioned in `guide_eating.md`, `guide_pellew_sands.md`, and `guide_accessibility.md`. Halden Bay also has a harbour front / seafront, according to `guide_eating.md` and `guide_halden_bay.md`.
+```
+
+**Criterion 3** — produced by: `run_eval.py::check_out_of_scope` → `gate.py::check`
+
+```
+What is the capital of Mongolia? | Best distance: 0.803 | Gate: refused
+How do I change the oil in a diesel engine? | Best distance: 0.892 | Gate: refused
+Who won the 1994 World Cup? | Best distance: 0.975 | Gate: refused
+What is the recommended dosage of ibuprofen for a headache? | Best distance: 0.846 | Gate: refused
+How do I write a for loop in Rust? | Best distance: 0.813 | Gate: refused
+
+-> gate refused 5 of 5
+```
+
+**Criterion 4** — produced by: `chunker.py::split_documents`, printed via `app.py::cmd_chunks`
+
+```
+Chunk 2 | source: guide_corry_vale.md#5 | produced by: chunker.py::split_documents
+
+## Where to stay
+
+Perhaps thirty beds in the entire valley, spread across two pubs and a handful of farmhouse rooms. In summer these are booked months ahead. Camping is permitted on two marked fields and nowhere else.
+```
+
+The one exception out of 5 is `guide_accessibility.md#0`, which begins with the document's own title (`# Getting around the region with limited mobility`) rather than a `##` heading — that's the intro/title section, which has no `##` heading to start at yet.
+
+**Criterion 5** — produced by: `app.py::cmd_ask` → `app.py::ask_pipeline`
+
+```
+Where is the nearest full hospital? — run 1
+
+Best distance: 0.313, cutoff 0.7
+
+The location of the nearest full hospital depends on the specific document:
+
+* In `guide_accessibility.md`, the nearest full hospital is in Marchwood.
+* In `guide_thornby_wells.md`, `guide_kestrelford.md`, `guide_pellew_sands.md`, and `guide_halden_bay.md`, the nearest full hospital is in Brightwater.
+
+Sources retrieved: guide_accessibility.md, guide_halden_bay.md, guide_kestrelford.md, guide_pellew_sands.md, guide_thornby_wells.md
+```
 
 ## Verdicts
 
