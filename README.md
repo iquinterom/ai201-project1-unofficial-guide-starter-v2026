@@ -148,6 +148,15 @@ I asked claude to help me with the function on the chunker.py, where the retriev
 **2.**
 For the relevant cutoff, i ran all 5 of my test questions and the 5 out of scope questions. I provided with the 10 results to Claude, and it helped explained what I was looking for and why these steps where necessary. 
 
+**3.**
+In Unit 2, I gave Claude my run results and asked it to argue that each of my MET verdicts was actually wrong, as strongly as it could. For criterion 1, it pointed out that 3 of my 5 `expects` values in `questions.py` (bakery, winter, cycling) didn't actually match what the corpus says — I'd written them before carefully re-reading every document. I decided to record that as a real MISSED verdict and diagnose it as a bad test oracle, rather than quietly revising the criterion to hide it.
+
+**4.**
+For Milestone 4's fix, Claude first suggested tightening `generate.py`'s `GROUNDING_INSTRUCTION` to stop a wording drift it had found in one of my criterion 5 runs. I told it that instruction is fixed by the course and I can't edit it. It pivoted to recommending a second chunking strategy instead (splitting on paragraphs instead of `##` headings), built it as a separate function and a separate index variant so my original chunker stayed untouched, then ran the full test suite against both. The paragraph strategy actually made things worse (criteria 1 and 4 both regressed), so I kept my original heading-based chunker rather than switching.
+
+**5.**
+From a class reference screenshot, I asked Claude to build `scorer.py` (`_normalize`, `_contains_phrase`, `judge`) matching the interface `run_eval.py::load_scorer` already expects. It wrote it and smoke-tested it before handing it back. When I ran it myself against my real questions, it marked 2 of my 5 as fail instead of the 5/5 I expected — turned out two of my `expects` values had typos ("Thorny Wells", "Peller Sands") I'd read past without noticing. I fixed them; all 5 pass now.
+
 
 <!-- ── Stretch features ─────────────────────────────────────────────────────
      Doing one? Say so here BEFORE you start. A feature this README never
@@ -330,6 +339,16 @@ every document. Three of my five guesses about what the corpus *should* say
 were simply wrong. The system found and reported the true answer every time —
 my test oracle, not my pipeline, was broken.
 
+**Update after building `scorer.py`:** once I had an automated, literal
+string-matcher instead of my own judgment, it turned out my two "correct"
+`expects` values had typos I'd read past without noticing — "Thorny Wells"
+and "Peller Sands" instead of "Thornby Wells" and "Pellew Sands". A human
+reader (me) recognized what I meant; a word-matching scorer correctly
+couldn't. So all 5 of my original `expects` values had a problem, not 3 — two
+typos plus the three wrong guesses above. I fixed both, and all 5 now pass
+`scorer.judge()` against the answers I already had saved, no new model calls
+needed to confirm it.
+
 **Were any targets set too low?** Yes, two others look safer than they should:
 - Criterion 2 (every answer names a source) can't structurally fail — every
   chunk reaches the model pre-labeled with its filename, and both the system
@@ -347,32 +366,88 @@ my test oracle, not my pipeline, was broken.
 
 **What I changed:**
 
+I added a second chunking strategy, `chunker.py::split_documents_paragraphs`,
+which splits every document on blank-line paragraph breaks instead of on `##`
+section headings. I indexed it under a separate variant (`--variant
+paragraphs`) so the original heading-based chunker and its index are
+untouched. I did **not** touch `generate.py`'s `GROUNDING_INSTRUCTION` — that
+text is fixed by the course, not mine to edit.
+
 **Why I picked it:**
 
-<!-- Connect it to a specific diagnosis above in one sentence. If you can't,
-     you picked a fix because it sounded impressive. -->
+My diagnosis for criterion 5's run-2 wording drift pointed at generation, which
+I'm not allowed to change — so I picked the closest available, diagnosis-adjacent
+lever: a different chunk granularity, one of the two strategies the milestone
+explicitly suggests, to see whether smaller, more atomic chunks reduce the
+chance of the model blending facts across towns the way it did in that run.
 
 ### Run Log — After
 
 <!-- Same format, same five criteria, three runs each.
      `python run_eval.py --label after` -->
 
+Run against the `paragraphs` variant, with the `expects` values in
+`questions.py` already corrected (see housekeeping note below the table).
+
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1. Retrieved chunk contains the answer | 4 of 5 |  |  |  |  |
-| 2. Every answer names a source | 5 of 5 |  |  |  |  |
-| 3. Gate stops out-of-corpus questions | 4 of 5 |  |  |  |  |
-| 4. | | | | | |
-| 5. | | | | | |
+| 1. Retrieved chunk contains the answer | 4 of 5 | 3/5 | 3/5 | 3/5 | MISSED |
+| 2. Every answer names a source | 5 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 3. Gate stops out-of-corpus questions | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 4. Chunks follow the section headings | 4 of 5 | 2/5 | 2/5 | 2/5 | MISSED |
+| 5. Conflicting documents are both surfaced | 3 of 3 | pass | pass | pass | MET |
+
+**A fairness note on criterion 1:** the Before table above shows 2/5 against
+the *original, wrong* `expects` values — that record is left untouched on
+purpose (Unit 2's own rule: never edit history). But I fixed those `expects`
+values as separate housekeeping before running this "after" test, so this
+table uses the corrected ones. To isolate just the chunking change, I re-checked
+what the *original* heading-based chunker scores against the same corrected
+`expects`: **5/5**. So the fair comparison is 5/5 (heading) → 3/5 (paragraphs)
+— the chunking change itself is what caused the drop, not the `expects` fix.
+
+**Real output — Criterion 1 (the new miss):**
+
+```
+Which town is better to visit in the winter? — run 1 (variant: paragraphs)
+
+Best distance: 0.5220 (passed the gate)
+Sources retrieved: guide_accessibility.md, guide_halden_bay.md, guide_pellew_sands.md, guide_thornby_wells.md, guide_walking.md
+
+Based on the documents, Thornby Wells is described as the region's most reliable winter destination after Marchwood, with a concert season running from September to April (guide_thornby_wells.md).
+```
+`guide_marchwood.md` — the document that actually says "This is the one place
+in the region that works in winter" — never made it into the top 5 retrieved
+chunks under this chunking. The heading-based chunker retrieved it every time.
+
+**Real output — Criterion 4 (chunk fragmentation):**
+
+```
+guide_pellew_sands.md#10 | produced by: chunker.py::split_documents_paragraphs
+## Where to stay
+
+guide_marchwood.md#14 | produced by: chunker.py::split_documents_paragraphs
+## Practical notes
+```
+Both of these are entire chunks — a heading with no body at all. Splitting on
+paragraph breaks treats a lone heading line as its own paragraph.
 
 **Did it help?**
 
-<!-- Say plainly whether it did, and how you know. If it made things worse,
-     say that — a change that backfired, honestly reported, earns full credit
-     and is more interesting than one that worked. What matters is that you can
-     tell.
+No — it made things worse. Criterion 1 dropped from a fair 5/5 to 3/5:
+splitting into 213 small paragraph-level chunks (versus 94 section-level ones)
+meant the one decisive sentence naming Marchwood got outranked and never
+retrieved for the winter question, buried among many more, smaller, similar
+paragraphs competing for the same top-5 slots. Criterion 4 dropped from 4/5 to
+2/5 for a simpler reason: a lone `##` heading with no following text becomes
+its own tiny, useless chunk under this strategy. Criterion 5 stayed MET, and
+its wording was arguably cleaner this time (no misattribution across any of
+the 3 runs) — but it was already MET before, so this isn't a gain, just noise
+from a different run. Criteria 2 and 3 were unaffected either way.
 
-     Milestone 4. -->
+Given this, I'm keeping the original heading-based `split_documents` as the
+system's actual chunking strategy — the paragraph variant stays in the
+codebase only as this documented, unsuccessful experiment.
 
 ## What's Still Broken
 
@@ -384,9 +459,58 @@ my test oracle, not my pipeline, was broken.
 
      Milestone 5. -->
 
+After reverting to the original heading-based chunker, every criterion scores
+MET again on its own terms — I didn't ship the regression. But one real,
+known weakness is still sitting in the deployed system, unfixed:
+
+**Criterion 5's generation-stage drift.** Before run 2 showed the model
+inventing an unstated relationship ("For Brightwater, the nearest full
+hospital is in Marchwood") that isn't what `guide_accessibility.md` actually
+says. The fix that would target this directly — tightening
+`GROUNDING_INSTRUCTION` in `generate.py` — isn't available to me; that text is
+fixed by the course, not mine to edit. The one fix I was allowed to try
+(switching chunking strategies) didn't touch this mechanism at all and made
+two other criteria worse instead, so I reverted it. I stopped here because I
+ran out of levers within what I'm allowed to change, not because I ran out of
+time — if I could edit `generate.py`, I'd add a rule against inferring which
+specific place an unattributed sentence applies to, and re-run criterion 5
+several more times to see if that actually reduces the drift rate, since one
+occurrence in three runs isn't enough to know if it's rare or common.
+
+**Criteria 2 and 3 are MET but weakly tested**, and I'm choosing not to
+"fix" them for this submission since nothing is actually broken — I'm noting
+it here instead of quietly leaving it out. Criterion 2 can't structurally
+fail given how the prompt and chunk labels are built, so passing it proves the
+plumbing works, not that answers are well-grounded. Criterion 3's out-of-scope
+questions were all obviously unrelated domains, so the gate has never been
+tested against a genuinely borderline question. Both are test-design gaps, not
+pipeline bugs, and I ran out of time to redesign and re-run them properly this
+unit.
+
 ## What I'd Do Differently
 
 <!-- Knowing what you know now — which of your five criteria would you write
      differently, and why?
 
      Milestone 5. -->
+
+**Criterion 1** — I'd never again write an `expects` value before actually
+verifying it against the corpus. Three of my five guesses were wrong, and I
+only found out because I happened to read the answers carefully instead of
+trusting my own memory of documents I'd skimmed in Milestone 1.
+
+**Criterion 2** — I'd write this so it can actually fail. "Names a source"
+was true by construction the moment the system instruction and prompt both
+demand it. Next time I'd write something like "every named source is one of
+the chunks the system actually retrieved for that question" — a claim that
+could genuinely be wrong if the model ever invented a citation.
+
+**Criterion 3** — I'd pick out-of-scope questions closer to the boundary
+instead of five obviously unrelated ones. My own rationale predicted the
+Mongolia question would be the close call, and it scored 0.803 — nowhere near
+the 0.70 cutoff. A criterion that's never actually tested near its edge isn't
+telling me much.
+
+**Criteria 4 and 5** I'd keep close to as-is. Criterion 5 in particular
+earned its place — it's the only one that caught a real generation failure,
+even though I couldn't fix it this unit.

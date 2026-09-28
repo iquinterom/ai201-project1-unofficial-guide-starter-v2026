@@ -145,6 +145,37 @@ def split_documents(documents: list[Document]) -> list[Chunk]:
     return chunks
 
 
+def split_documents_paragraphs(documents: list[Document]) -> list[Chunk]:
+    """
+    Second chunking strategy, for Unit 2's before/after comparison.
+
+    Splits on blank-line paragraph breaks instead of "## " headings, so a
+    multi-paragraph section becomes several smaller chunks instead of one.
+    `split_documents` above is untouched — this is a separate strategy, indexed
+    under its own variant name so both can be queried side by side.
+    """
+    chunks: list[Chunk] = []
+    for doc in documents:
+        paragraphs = re.split(r"\n\s*\n", doc.text)
+
+        index = 0
+        for para in paragraphs:
+            para = para.strip()
+            if not para:
+                continue
+            chunks.append(
+                Chunk(
+                    text=para,
+                    source=doc.source,
+                    index=index,
+                    produced_by="chunker.py::split_documents_paragraphs",
+                )
+            )
+            index += 1
+
+    return chunks
+
+
 def describe(chunks: list[Chunk]) -> str:
     """A one-line summary, printed after indexing."""
     if not chunks:
