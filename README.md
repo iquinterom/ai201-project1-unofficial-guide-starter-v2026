@@ -163,6 +163,16 @@ From a class reference screenshot, I asked Claude to build `scorer.py` (`_normal
      claims earns nothing.
      ───────────────────────────────────────────────────────────────────────── -->
 
+**Stretch: a second measured improvement.** 
+a second change from the Milestone 4 menu, run and logged the same way as the
+first. My first improvement changed the chunking strategy (reverted after it
+regressed two criteria). This second one changes `TOP_K` in `config.py`
+(currently 5) to see whether retrieving fewer, more focused chunks reduces the
+kind of cross-document conflation that caused criterion 5's run-2 drift, or
+whether it instead starves retrieval of chunks it needs (criterion 1's risk
+with a smaller pool). Declared here before building it; the third run log and
+verdict go under a new section below once it's measured.
+
 ---
 
 # Unit 2
@@ -448,6 +458,80 @@ from a different run. Criteria 2 and 3 were unaffected either way.
 Given this, I'm keeping the original heading-based `split_documents` as the
 system's actual chunking strategy — the paragraph variant stays in the
 codebase only as this documented, unsuccessful experiment.
+
+## Second Improvement (Stretch)
+
+**What I changed:** `config.TOP_K` from 5 down to 3, on top of the original
+heading-based chunker (not the paragraph variant, which I already reverted).
+Retrieval now returns only the 3 nearest chunks instead of 5.
+
+**Why I picked it:** it's a different lever from the Milestone 4 menu than my
+first improvement (chunking), and it directly tests the hypothesis I raised
+earlier — that giving the model fewer, more focused chunks might reduce
+cross-document conflation — while also risking the opposite failure: starving
+retrieval of a chunk it actually needs.
+
+### Run Log — Stretch (TOP_K = 3)
+
+| Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
+|---|---|---|---|---|---|
+| 1. Retrieved chunk contains the answer | 4 of 5 | 4/5 | 4/5 | 4/5 | MET* |
+| 2. Every answer names a source | 5 of 5 | 4/5 | 4/5 | 4/5 | MISSED |
+| 3. Gate stops out-of-corpus questions | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 4. Chunks follow the section headings | 4 of 5 | 4/5 | 4/5 | 4/5 | MET |
+| 5. Conflicting documents are both surfaced | 3 of 3 | fail | fail | fail | MISSED |
+
+\* Criterion 1 numerically still clears its target, but only because 4/5 is
+exactly the bar — see the real output below for what that fifth question
+actually did.
+
+**Real output — Criterion 1 (the new failure, all 3 runs):**
+
+```
+Which town is easiest to get around when you have limited accessibility? — run 1
+
+Best distance: 0.5078 (passed the gate)
+Sources retrieved: guide_corry_vale.md, guide_elder_ness.md, guide_halden_bay.md
+
+I do not have enough information to answer this question.
+```
+With only 3 chunks retrieved, the one chunk that actually contains the
+answer (`guide_accessibility.md`'s "Straightforward" section, naming Thornby
+Wells) got pushed out of the top 3 entirely. The gate still passed the
+question through — a *different* chunk was close enough on its own — but the
+model correctly had nothing to answer from.
+
+**Real output — Criterion 2 (no source named, same question):** the exact
+text above, all 3 runs, either "I do not have enough information..." or "there
+is not enough information..." — a refusal that isn't the gate's structured
+`gate.REFUSAL`, so it never triggers the "gate refused" accounting, and it
+never names a source either.
+
+**Real output — Criterion 5 (fabrication, not just drift):**
+
+```
+Where is the nearest full hospital? — run 1
+
+Best distance: 0.313, cutoff 0.7
+Sources retrieved: guide_accessibility.md, guide_kestrelford.md, guide_thornby_wells.md
+
+The location of the nearest full hospital depends on where you are:
+- For Marchwood, the nearest full hospital is in Marchwood (guide_accessibility.md).
+- For Thornby Wells and Kestrelford, the nearest full hospital is in Brightwater (guide_thornby_wells.md and guide_accessibility.md / guide_kestrelford.md).
+```
+All 3 runs invented a specific claim about Marchwood — even though
+`guide_marchwood.md` was never retrieved at all under `TOP_K = 3`. This is a
+step past the original run-2 drift: that one at least paraphrased a chunk
+that was actually there. This one asserts something about a document that
+was never in the context.
+
+**Did it help?** No — clearly not. It made two criteria worse (2 and 5, both
+flipping to MISSED) and turned criterion 1 into a pass that only barely clears
+its target while hiding a real, clean failure underneath the number.
+Retrieving fewer chunks didn't reduce cross-document confusion; it starved
+the model of the specific chunk it needed and then, in the hospital question,
+seems to have made it more willing to guess at towns it had no data on at all,
+not less. I reverted `TOP_K` back to 5.
 
 ## What's Still Broken
 
