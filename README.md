@@ -176,7 +176,7 @@ For the relevant cutoff, i ran all 5 of my test questions and the 5 out of scope
 
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1. Retrieved chunk contains the answer | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 1. Retrieved chunk contains the answer | 4 of 5 | 2/5 | 2/5 | 2/5 | MISSED |
 | 2. Every answer names a source | 5 of 5 | 5/5 | 5/5 | 5/5 | MET |
 | 3. Gate stops out-of-corpus questions | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
 | 4. Chunks follow the section headings | 4 of 5 | 4/5 | 4/5 | 4/5 | MET |
@@ -188,6 +188,8 @@ For the relevant cutoff, i ran all 5 of my test questions and the 5 out of scope
 
 **Criterion 1** — produced by: `run_eval.py::main` → `store.py::search`, `chunker.py::split_documents`
 
+Pass example — matches my `expects` value in `questions.py`:
+
 ```
 Which town is easiest to get around when you have limited accessibility? — run 1
 
@@ -197,6 +199,19 @@ Sources retrieved: guide_accessibility.md, guide_corry_vale.md, guide_elder_ness
 Thornby Wells is the easiest town in the region for accessibility.
 
 Source: guide_accessibility.md
+```
+
+Miss example — my `expects` value said "Marchwood," but the retrieved chunks and answer say Kestrelford instead:
+
+```
+Which town has the best bakery? — run 1
+
+Best distance: 0.5783 (passed the gate)
+Sources retrieved: guide_corry_vale.md, guide_eating.md, guide_kestrelford.md, guide_thornby_wells.md
+
+Based on the provided documents, Kestrelford has a bakery that sells out by 11am and is the reason many people return or come back.
+
+Sources: `guide_kestrelford.md` and `guide_eating.md`
 ```
 
 **Criterion 2** — produced by: `run_eval.py::main` → `generate.py::answer_from_chunks`
@@ -262,7 +277,7 @@ Sources retrieved: guide_accessibility.md, guide_halden_bay.md, guide_kestrelfor
 
 | # | Criterion | Verdict | How I decided |
 |---|---|---|---|
-| 1 | Retrieved chunk contains the answer | MET (revised) | Against my original `expects` values, this would be 2/5 — 3 of them (bakery→Marchwood, winter→Brightwater, cycling→Givens Mill) were guesses I wrote before verifying every document, and don't match the corpus. I revised the criterion in `criteria.md` to grade against the actual corpus content instead, since that's what "the retrieved chunks contain the answer" is meant to test. Under that reading, all 5 questions passed in all 3 runs. |
+| 1 | Retrieved chunk contains the answer | MISSED | Against my `expects` values in `questions.py`, only 2 of 5 questions matched (accessibility, sea front) — 3 of them (bakery→Marchwood, winter→Brightwater, cycling→Givens Mill) don't match what the system found, in any of the 3 runs. That's 2/5 against a 4 of 5 target, a clear miss. See Diagnoses below — this isn't a pipeline bug, it's a bad test oracle. |
 | 2 | Every answer names a source | MET | All 15 runs (5 questions × 3 runs) named at least one source file. Worth noting this criterion is nearly impossible to fail by construction — every chunk reaches the model pre-labeled with its filename and the system instruction demands a citation — so this MET says more about the plumbing than about answer quality. |
 | 3 | Gate stops out-of-corpus questions | MET | All 5 out-of-scope questions refused, at distances 0.803–0.975, comfortably above the 0.70 cutoff. None of the five landed near the boundary the way I expected the Mongolia question to — my out-of-scope set may be less adversarial than it could be. |
 | 4 | Chunks follow the section headings | MET | 4 of 5 sample chunks (from `python app.py chunks -n 5`) start at a `##` heading. The one exception, `guide_accessibility.md#0`, is the document's title/intro section, which has no `##` heading to start at yet — a different miss than the oversized-section split I originally anticipated, but still a legitimate structural exception rather than a chunking bug. |
@@ -287,6 +302,46 @@ Sources retrieved: guide_accessibility.md, guide_halden_bay.md, guide_kestrelfor
      low, and which one you'd tighten and to what.
 
      Milestone 3. -->
+
+Criterion 1 was the only miss (2 of 5 against a 4 of 5 target). All 3 misses
+share one root cause, so it's one problem, not three:
+
+**Which of the 5 questions missed, and why:**
+- "Which town has the best bakery?" — `expects` said Marchwood. Only
+  `guide_kestrelford.md` and `guide_eating.md` mention a bakery at all.
+- "Which town is better to visit in the winter?" — `expects` said
+  Brightwater. `guide_marchwood.md` explicitly says Marchwood "is the one
+  place in the region that works in winter," while `guide_brightwater.md`
+  says winter there is cold and several businesses close.
+- "Where will be better to go cycling?" — `expects` said Givens Mill.
+  Givens Mill's guide never mentions cycling; the actual routes are described
+  in `guide_regional_transport.md` and `guide_brightwater.md`.
+
+**Working backwards through the five stages** (per the "if you're stuck"
+check): for all 3 questions, the retrieved chunks genuinely contained the
+answer, and the generated answer accurately summarized that chunk — same
+outcome across all 3 runs each time, so it isn't a wording fluke either. That
+rules out loading, chunking, embedding, retrieval, *and* generation; none of
+the five pipeline stages actually failed here.
+
+**The real cause sits before the pipeline even ran:** I wrote the `expects`
+values in `questions.py` during Milestone 2, before I'd carefully re-read
+every document. Three of my five guesses about what the corpus *should* say
+were simply wrong. The system found and reported the true answer every time —
+my test oracle, not my pipeline, was broken.
+
+**Were any targets set too low?** Yes, two others look safer than they should:
+- Criterion 2 (every answer names a source) can't structurally fail — every
+  chunk reaches the model pre-labeled with its filename, and both the system
+  instruction and the question ask for it. I'd tighten this to something that
+  actually tests grounding, e.g. "every named source is one of the chunks
+  actually retrieved for that question, not an invented one."
+- Criterion 3 (gate stops out-of-corpus questions) was never tested near its
+  boundary — my rationale predicted the Mongolia question would land close to
+  the cutoff, but it scored 0.803, far clear of 0.70. I'd tighten this by
+  swapping in a genuinely borderline out-of-scope question — something
+  travel-adjacent but still uncovered by this corpus — instead of five
+  wildly unrelated domains.
 
 ## The Improvement
 
