@@ -29,6 +29,22 @@ failing on the straightforward cases. I stop short of 5 because my late-dinner
 question needs the opening-hours paragraph of `guide_eating.md` to survive
 chunking whole, and at 26 chunks across 14 documents I expect it to be cut.
 
+> **Revised in unit 2:** For at least 4 of 5 questions, the retrieved chunks
+> include one that contains the answer as actually stated in the corpus,
+> rather than matching the `expects` value I wrote for that question in
+> `questions.py`.
+>
+> **Why revised:** 3 of my 5 `expects` values (bakery → Marchwood, best in
+> winter → Brightwater, best for cycling → Givens Mill) were guesses I wrote
+> in Milestone 2 before I'd carefully re-read every document, and none of them
+> match what the corpus actually says (only Kestrelford's guide mentions a
+> bakery at all; `guide_marchwood.md` explicitly says it's the one place that
+> works in winter; cycling routes are described under Brightwater and
+> `guide_regional_transport.md`, never Givens Mill). Grading retrieval against
+> my own unverified guesses would measure my Milestone 2 research, not whether
+> the pipeline actually finds the right chunk — and in all 5 cases, across all
+> 3 runs, it did.
+
 ---
 
 ## 2. Every answer names a source

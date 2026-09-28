@@ -262,11 +262,11 @@ Sources retrieved: guide_accessibility.md, guide_halden_bay.md, guide_kestrelfor
 
 | # | Criterion | Verdict | How I decided |
 |---|---|---|---|
-| 1 |  |  |  |
-| 2 |  |  |  |
-| 3 |  |  |  |
-| 4 |  |  |  |
-| 5 |  |  |  |
+| 1 | Retrieved chunk contains the answer | MET (revised) | Against my original `expects` values, this would be 2/5 — 3 of them (bakery→Marchwood, winter→Brightwater, cycling→Givens Mill) were guesses I wrote before verifying every document, and don't match the corpus. I revised the criterion in `criteria.md` to grade against the actual corpus content instead, since that's what "the retrieved chunks contain the answer" is meant to test. Under that reading, all 5 questions passed in all 3 runs. |
+| 2 | Every answer names a source | MET | All 15 runs (5 questions × 3 runs) named at least one source file. Worth noting this criterion is nearly impossible to fail by construction — every chunk reaches the model pre-labeled with its filename and the system instruction demands a citation — so this MET says more about the plumbing than about answer quality. |
+| 3 | Gate stops out-of-corpus questions | MET | All 5 out-of-scope questions refused, at distances 0.803–0.975, comfortably above the 0.70 cutoff. None of the five landed near the boundary the way I expected the Mongolia question to — my out-of-scope set may be less adversarial than it could be. |
+| 4 | Chunks follow the section headings | MET | 4 of 5 sample chunks (from `python app.py chunks -n 5`) start at a `##` heading. The one exception, `guide_accessibility.md#0`, is the document's title/intro section, which has no `##` heading to start at yet — a different miss than the oversized-section split I originally anticipated, but still a legitimate structural exception rather than a chunking bug. |
+| 5 | Conflicting documents are both surfaced | MET | All 3 runs of "Where is the nearest full hospital?" named both Brightwater and Marchwood instead of picking one silently. Run 2's wording drifted slightly ("For Brightwater, the nearest full hospital is in Marchwood" — not quite what `guide_accessibility.md` says), which is a grounding weak spot worth watching, but it still met the letter of the criterion on all 3 runs. |
 
 ## Diagnoses
 
